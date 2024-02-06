@@ -5,6 +5,11 @@ from fastapi.encoders import jsonable_encoder
 from typing import Annotated
 import sqlite3
 
+# client = MongoClient()
+# db = client.dest_database
+# collection = db.test_collection
+
+
 con = sqlite3.connect('db.db',check_same_thread=False)
 cur = con.cursor() #디비에서 커서라는 개념이 있는데 인서트 셀렉트 할 때 사용
 
@@ -17,6 +22,15 @@ cur.execute(f"""
                 description TEXT,
                 place TEXT NOT NULL,
                 insertAt INTEGER NOT NULL
+            );
+            """)
+
+cur.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                email TEXT NOT NULL,
+                password TEXT NOT NULL
             );
             """)
 
@@ -59,6 +73,19 @@ async def get_image(item_id):
                               SELECT image from items WHERE id={item_id}
                               """).fetchone()[0]
     return Response(content=bytes.fromhex(image_bytes), media_type='image/*')
+
+
+@app.post('/signup')
+def signup(id:Annotated[str,Form()], 
+           password:Annotated[str,Form()],
+           name:Annotated[str,Form()],
+           email:Annotated[str,Form()]):
+    cur.execute(f"""
+                INSERT INTO users(id,name,email,password)
+                VALUES('{id}','{name}','{email}','{password}')
+                """)
+    con.commit()
+    return '200'
 
 app.mount("/", StaticFiles(directory="frontend", html=True), name="frontend")
 
